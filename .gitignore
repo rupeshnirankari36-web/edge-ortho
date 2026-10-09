@@ -1,0 +1,11 @@
+﻿venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+dashboard/node_modules/
+dashboard/dist/
+data/projects/
+data/raw/*
+!data/raw/.gitkeep
+outputs/
+

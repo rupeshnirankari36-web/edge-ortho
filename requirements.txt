@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+opencv-contrib-python-headless
+numpy
+scipy
+pyproj
+rasterio
+psutil
+SQLAlchemy
+python-multipart
+exifread
