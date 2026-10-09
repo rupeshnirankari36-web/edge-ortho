@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EdgeOrtho - Leaflet Interactive Orthomosaic Viewer</title>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.85);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body, html {
+      height: 100%;
+      width: 100%;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+    }
+    #map {
+      height: 100%;
+      width: 100%;
+      z-index: 1;
+      background: #1e293b;
+    }
+    .hud-panel {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 1000;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+      max-width: 360px;
+      pointer-events: auto;
+    }
+    .hud-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .hud-badge {
+      font-size: 0.7rem;
+      background: rgba(56, 189, 248, 0.2);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      margin-top: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 4px;
+    }
+    .meta-label {
+      color: var(--text-muted);
+    }
+    .meta-value {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-main);
+      font-weight: 500;
+    }
+    .control-group {
+      margin-top: 14px;
+    }
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .slider {
+      width: 100%;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .status-alert {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: rgba(56, 189, 248, 0.1);
+      border-left: 3px solid var(--accent);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      color: var(--accent);
+    }
+    .status-error {
+      background: rgba(239, 68, 68, 0.15);
+      border-left-color: #ef4444;
+      color: #fca5a5;
+    }
+    .back-btn {
+      display: inline-block;
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .back-btn:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="hud-panel">
+    <div class="hud-title">
+      <span>EdgeOrtho Viewer</span>
+      <span class="hud-badge">Leaflet GIS</span>
+    </div>
+    <div id="manifest-info">
+      <div class="meta-row">
+        <span class="meta-label">Status</span>
+        <span class="meta-value" id="status-val">Loading...</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Dataset</span>
+        <span class="meta-value" id="dataset-name">-</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">GSD</span>
+        <span class="meta-value" id="gsd-val">-</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Resolution</span>
+        <span class="meta-value" id="res-val">-</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">CRS (EPSG)</span>
+        <span class="meta-value" id="crs-val">-</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-label">Zoom Levels</span>
+        <span class="meta-value" id="zoom-val">-</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>Mosaic Opacity</span>
+        <span id="opacity-val">100%</span>
+      </div>
+      <input type="range" min="0" max="100" value="100" class="slider" id="opacity-slider" />
+    </div>
+
+    <div id="alert-box" class="status-alert">Deriving bounds from run manifest...</div>
+    <div>
+      <a href="/" class="back-btn">&larr; Back to Dashboard</a>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    (function() {
+      // 1. Initialize Map with Basemaps
+      const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 22,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | EdgeOrtho Pipeline'
+      });
+
+      const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 22,
+        attribution: 'Tiles &copy; Esri, Maxar, Earthstar Geographics | EdgeOrtho Pipeline'
+      });
+
+      const map = L.map('map', {
+        center: [34.0522, -118.2437],
+        zoom: 18,
+        maxZoom: 22,
+        layers: [satellite]
+      });
+
+      const baseLayers = {
+        "Satellite Imagery": satellite,
+        "OpenStreetMap": osm
+      };
+      L.control.layers(baseLayers, null, { position: 'topright' }).addTo(map);
+      L.control.scale({ imperial: false, position: 'bottomright' }).addTo(map);
+
+      // 2. Parse Query Params
+      const urlParams = new URLSearchParams(window.location.search);
+      let manifestUrl = urlParams.get('manifest') || '/outputs/survey_run/manifest.json';
+      let tileUrlOverride = urlParams.get('tiles');
+
+      const statusEl = document.getElementById('status-val');
+      const datasetEl = document.getElementById('dataset-name');
+      const gsdEl = document.getElementById('gsd-val');
+      const resEl = document.getElementById('res-val');
+      const crsEl = document.getElementById('crs-val');
+      const zoomEl = document.getElementById('zoom-val');
+      const alertBox = document.getElementById('alert-box');
+      const opacitySlider = document.getElementById('opacity-slider');
+      const opacityVal = document.getElementById('opacity-val');
+
+      let tileLayer = null;
+      let boundsPolygon = null;
+
+      // 3. Fetch Manifest and derive runtime parameters
+      fetch(manifestUrl)
+        .then(res => {
+          if (!res.ok) throw new Error('HTTP ' + res.status + ' loading ' + manifestUrl);
+          return res.json();
+        })
+        .then(manifest => {
+          statusEl.textContent = 'Active';
+          statusEl.style.color = '#4ade80';
+          datasetEl.textContent = manifest.name || 'Drone Orthomosaic';
+          gsdEl.textContent = manifest.gsd_m ? (manifest.gsd_m * 100).toFixed(2) + ' cm/px' : 'N/A';
+          resEl.textContent = manifest.width && manifest.height ? `${manifest.width} × ${manifest.height}` : 'N/A';
+          crsEl.textContent = manifest.epsg ? `EPSG:${manifest.epsg}` : 'UTM';
+
+          // Derive bounds: [min_lon, min_lat, max_lon, max_lat]
+          const boundsWgs84 = manifest.bounds_wgs84;
+          if (boundsWgs84 && boundsWgs84.length === 4) {
+            const southWest = L.latLng(boundsWgs84[1], boundsWgs84[0]);
+            const northEast = L.latLng(boundsWgs84[3], boundsWgs84[2]);
+            const bounds = L.latLngBounds(southWest, northEast);
+
+            // Draw bounding box
+            boundsPolygon = L.rectangle(bounds, {
+              color: '#38bdf8',
+              weight: 2,
+              fillColor: '#38bdf8',
+              fillOpacity: 0.08,
+              dashArray: '4, 4'
+            }).addTo(map);
+
+            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 20 });
+          }
+
+          // Tile URL derivation
+          // Relative tile URL resolution
+          let tileUrl = tileUrlOverride;
+          if (!tileUrl) {
+            if (manifest.tiles.startsWith('http') || manifest.tiles.startsWith('/')) {
+              tileUrl = manifest.tiles;
+            } else {
+              // Resolve relative to manifest path
+              const manifestDir = manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1);
+              tileUrl = manifestDir + manifest.tiles;
+            }
+          }
+
+          // Fetch tile metadata for min/max zoom if available
+          let minZoom = 14;
+          let maxZoom = 22;
+          const metaPath = manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1) + (manifest.tile_metadata || 'tiles/metadata.json');
+
+          fetch(metaPath)
+            .then(r => r.ok ? r.json() : null)
+            .then(tileMeta => {
+              if (tileMeta) {
+                if (tileMeta.minzoom) minZoom = tileMeta.minzoom;
+                if (tileMeta.maxzoom) maxZoom = tileMeta.maxzoom;
+                zoomEl.textContent = `z${minZoom} - z${maxZoom}`;
+              } else {
+                zoomEl.textContent = 'Auto';
+              }
+
+              // Add XYZ raster tile layer
+              tileLayer = L.tileLayer(tileUrl, {
+                minZoom: minZoom,
+                maxNativeZoom: maxZoom,
+                maxZoom: 22,
+                tms: false,
+                opacity: 1.0,
+                attribution: 'Orthomosaic &copy; EdgeOrtho Edge Processing'
+              }).addTo(map);
+
+              alertBox.textContent = `Loaded ${manifest.name || 'Orthomosaic'} successfully.`;
+            })
+            .catch(() => {
+              tileLayer = L.tileLayer(tileUrl, {
+                minZoom: 14,
+                maxZoom: 22,
+                opacity: 1.0,
+                attribution: 'Orthomosaic &copy; EdgeOrtho Edge Processing'
+              }).addTo(map);
+              alertBox.textContent = `Loaded ${manifest.name || 'Orthomosaic'}.`;
+            });
+        })
+        .catch(err => {
+          console.error(err);
+          statusEl.textContent = 'Error';
+          statusEl.style.color = '#ef4444';
+          alertBox.className = 'status-alert status-error';
+          alertBox.textContent = 'Failed to load manifest: ' + err.message;
+        });
+
+      // Opacity Slider listener
+      opacitySlider.addEventListener('input', (e) => {
+        const val = parseInt(e.target.value, 10);
+        opacityVal.textContent = val + '%';
+        if (tileLayer) {
+          tileLayer.setOpacity(val / 100);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

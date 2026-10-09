@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EdgeOrtho — UAV Photogrammetry Engine</title>
+  <meta name="description" content="Offline-first UAV orthomosaic processing engine for edge hardware" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:           #0b1120;
+      --panel:        #111c2e;
+      --card:         #16243a;
+      --card-h:       #1c2e4a;
+      --border:       #1e3558;
+      --blue:         #2563eb;
+      --blue-l:       #3b82f6;
+      --cyan:         #06b6d4;
+      --green:        #059669;
+      --green-l:      #10b981;
+      --amber:        #d97706;
+      --red:          #dc2626;
+      --text:         #e2e8f0;
+      --muted:        #64748b;
+      --dim:          #334155;
+      --mono:         'Roboto Mono', monospace;
+      --r:            8px;
+      --pw:           360px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+
+    /* HEADER */
+    #hdr{height:50px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;position:relative;z-index:200}
+    .brand{display:flex;align-items:center;gap:9px}
+    .brand-logo{width:30px;height:30px;background:var(--blue);border-radius:6px;display:flex;align-items:center;justify-content:center}
+    .brand-logo svg{fill:#fff}
+    .brand-name{font-size:1rem;font-weight:700;letter-spacing:-.01em}
+    .brand-sub{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+    .hdr-chips{display:flex;align-items:center;gap:8px}
+    .chip{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:4px;border:1px solid var(--border);background:var(--card);font-size:.7rem;font-family:var(--mono)}
+    .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);animation:blink 2s infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+    .hdr-nav{display:flex;gap:5px}
+    .nav-a{padding:4px 9px;border-radius:6px;font-size:.72rem;font-weight:500;text-decoration:none;color:var(--muted);border:1px solid var(--border);background:var(--card);transition:all .15s}
+    .nav-a:hover{color:var(--text);border-color:var(--blue-l)}
+
+    /* WORKSPACE */
+    #ws{display:flex;height:calc(100vh - 50px);overflow:hidden}
+
+    /* LEFT PANEL */
+    #lp{width:var(--pw);flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+    #lp::-webkit-scrollbar{width:3px}
+    #lp::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+    .sec{border-bottom:1px solid var(--border);padding:12px 14px}
+    .sec-title{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:9px;display:flex;align-items:center;justify-content:space-between}
+    .sec-title span{font-family:var(--mono);font-size:.68rem;color:var(--cyan)}
+
+    /* Tabs */
+    .tabs{display:flex;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+    .tab{flex:1;padding:6px 4px;font-size:.76rem;font-weight:600;text-align:center;cursor:pointer;background:transparent;border:none;color:var(--muted);transition:all .15s}
+    .tab.on{background:var(--blue);color:#fff}
+    .pane{display:none}.pane.on{display:block}
+
+    /* Form */
+    .lbl{display:block;font-size:.7rem;font-weight:500;color:var(--muted);margin-bottom:3px;margin-top:8px}
+    .sel,.inp{width:100%;background:var(--card);border:1px solid var(--border);border-radius:var(--r);color:var(--text);padding:7px 9px;font-size:.8rem;font-family:inherit;outline:none;transition:border .15s}
+    .sel:focus,.inp:focus{border-color:var(--blue-l)}
+    .sel option{background:var(--card)}
+
+    /* Dataset info */
+    #ds-info{margin-top:7px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;font-size:.73rem;display:none}
+    #ds-info.on{display:block}
+    .di{display:flex;justify-content:space-between;margin-top:2px}
+    .dk{color:var(--muted)}.dv{font-family:var(--mono);font-weight:500}
+    .dv.g{color:var(--green-l)}.dv.r{color:#f87171}
+
+    /* Buttons */
+    .btn-dl{display:flex;align-items:center;justify-content:center;gap:5px;padding:6px 10px;border-radius:var(--r);font-size:.73rem;font-weight:600;text-decoration:none;color:var(--muted);border:1px solid var(--border);background:var(--card);cursor:pointer;transition:all .15s;margin-top:7px;width:100%}
+    .btn-dl:hover{color:var(--text);border-color:var(--blue-l);background:var(--card-h)}
+
+    /* Drop zone */
+    #dz{border:2px dashed var(--border);border-radius:var(--r);padding:18px 10px;text-align:center;cursor:pointer;transition:all .15s;color:var(--muted);font-size:.78rem}
+    #dz.over{border-color:var(--blue-l);background:rgba(37,99,235,.06);color:var(--blue-l)}
+    #dz svg{margin-bottom:5px;opacity:.45}
+    #fn{margin-top:5px;font-size:.7rem;font-family:var(--mono);color:var(--cyan);word-break:break-all}
+
+    /* Upload status */
+    #us{margin-top:7px;padding:7px 9px;border-radius:var(--r);font-size:.73rem;display:none}
+    #us.ok{display:block;background:rgba(5,150,105,.1);border:1px solid rgba(5,150,105,.3);color:var(--green-l)}
+    #us.err{display:block;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);color:#f87171}
+    #us.load{display:block;background:rgba(37,99,235,.07);border:1px solid var(--border);color:var(--muted)}
+
+    /* Action buttons */
+    .abtn{width:100%;padding:9px;border:none;border-radius:var(--r);font-size:.82rem;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s;letter-spacing:.01em}
+    #run-btn{background:var(--blue);color:#fff;margin-top:10px}
+    #run-btn:hover:not(:disabled){background:var(--blue-l)}
+    #run-btn:disabled{opacity:.5;cursor:not-allowed}
+    #run-btn.running{background:var(--amber)}
+    #run-btn.done{background:var(--green)}
+    #run-btn.err{background:var(--red)}
+    #up-btn{background:var(--blue);color:#fff;margin-top:9px}
+    #up-btn:hover:not(:disabled){background:var(--blue-l)}
+    #up-btn:disabled{opacity:.5;cursor:not-allowed}
+
+    /* Run indicator */
+    .ri{margin-top:7px;display:none;align-items:center;gap:7px;font-size:.73rem;color:var(--muted)}
+    .ri.on{display:flex}
+    .el{font-family:var(--mono);color:var(--amber)}
+    .spin{animation:sp .8s linear infinite;display:inline-block}
+    @keyframes sp{100%{transform:rotate(360deg)}}
+
+    /* Stages */
+    .sl{display:flex;flex-direction:column;gap:4px}
+    .si{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:6px;border:1px solid var(--border);background:var(--bg);font-size:.76rem;transition:all .2s}
+    .si.act{border-color:var(--blue-l);background:rgba(37,99,235,.07)}
+    .si.done{border-color:rgba(5,150,105,.25);background:rgba(5,150,105,.05)}
+    .si.err{border-color:rgba(220,38,38,.3);background:rgba(220,38,38,.06)}
+    .si-ic{width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;background:var(--card);color:var(--muted);flex-shrink:0}
+    .si.act .si-ic{background:var(--blue);color:#fff;animation:sp 1.2s linear infinite}
+    .si.done .si-ic{background:var(--green);color:#fff}
+    .si-lb{flex:1;color:var(--text)}.si:not(.act):not(.done) .si-lb{color:var(--muted)}
+    .si-t{font-family:var(--mono);font-size:.66rem;color:var(--muted)}
+    .si.act .si-t{color:var(--blue-l)}.si.done .si-t{color:var(--green-l)}
+    .pw{margin-top:9px;height:3px;background:var(--border);border-radius:3px;overflow:hidden}
+    .pf{height:100%;background:var(--blue);border-radius:3px;transition:width .4s ease}
+
+    /* Metrics */
+    .mg{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+    .mc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:8px 9px}
+    .mk{font-size:.66rem;color:var(--muted);margin-bottom:2px}
+    .mv{font-family:var(--mono);font-size:.95rem;font-weight:600;color:var(--text)}
+    .mv.ac{color:var(--blue-l)}
+
+    /* Log */
+    #log{background:var(--bg);border:1px solid var(--border);border-radius:var(--r);font-family:var(--mono);font-size:.68rem;color:#7c9cbf;padding:5px 7px;max-height:90px;overflow-y:auto;margin-top:7px;line-height:1.55}
+    #log::-webkit-scrollbar{width:2px}
+    #log::-webkit-scrollbar-thumb{background:var(--border)}
+    .ll{white-space:pre-wrap;word-break:break-all}
+    .ll.hl{color:var(--cyan)}.ll.er{color:#f87171}
+
+    /* RIGHT AREA */
+    #ra{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+    /* Map toolbar */
+    #mt{height:38px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 14px;flex-shrink:0}
+    .tl{font-size:.69rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+    .ts{width:1px;height:18px;background:var(--border)}
+    .op-wrap{display:flex;align-items:center;gap:7px;font-size:.72rem}
+    #op-sl{width:85px;accent-color:var(--blue);cursor:pointer}
+    #op-v{font-family:var(--mono);font-size:.7rem;width:34px;color:var(--text)}
+    .tb{padding:3px 9px;border-radius:5px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:.7rem;font-weight:600;cursor:pointer;transition:all .15s}
+    .tb:hover{color:var(--text);border-color:var(--blue-l)}
+    #coord{margin-left:auto;font-family:var(--mono);font-size:.66rem;color:var(--muted)}
+
+    /* Map */
+    #mw{flex:1;position:relative;overflow:hidden}
+    #map{height:100%;width:100%;background:#0d1b2e}
+    #no-data{position:absolute;inset:0;z-index:999;background:rgba(11,17,32,.7);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:.82rem;pointer-events:none}
+    #no-data.h{display:none}
+    #no-data svg{opacity:.3}
+    #hud{position:absolute;bottom:22px;left:10px;z-index:1000;background:rgba(11,17,32,.88);backdrop-filter:blur(10px);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;min-width:170px}
+    .ht{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--blue-l);margin-bottom:7px}
+    .hr{display:flex;justify-content:space-between;gap:10px;font-size:.7rem;margin-top:3px}
+    .hk{color:var(--muted)}.hv{font-family:var(--mono);font-weight:500}
+
+    /* Bottom row */
+    #br{flex-shrink:0;background:var(--panel);border-top:1px solid var(--border);display:flex}
+    .ac{flex:1;display:flex;align-items:center;gap:9px;padding:9px 12px;text-decoration:none;color:var(--text);border-right:1px solid var(--border);transition:all .15s;min-width:0}
+    .ac:last-child{border-right:none}
+    .ac:hover{background:var(--card-h)}
+    .ai{width:30px;height:30px;border-radius:5px;background:rgba(37,99,235,.1);display:flex;align-items:center;justify-content:center;color:var(--blue-l);flex-shrink:0}
+    .al{font-size:.76rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .as{font-size:.65rem;color:var(--muted);white-space:nowrap}
+
+    /* Leaflet overrides */
+    .leaflet-control-layers{background:rgba(11,17,32,.9)!important;border:1px solid var(--border)!important;border-radius:var(--r)!important}
+    .leaflet-control-layers label{color:var(--text)!important;font-family:inherit!important;font-size:.73rem!important}
+  </style>
+</head>
+<body>
+
+<header id="hdr">
+  <div class="brand">
+    <div class="brand-logo">
+      <svg width="17" height="17" viewBox="0 0 24 24"><path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg>
+    </div>
+    <div>
+      <div class="brand-name">EdgeOrtho</div>
+      <div class="brand-sub">UAV Photogrammetry Engine</div>
+    </div>
+  </div>
+  <div class="hdr-chips">
+    <div class="chip"><div class="dot"></div><span>API&nbsp;<strong id="hapi">Online</strong></span></div>
+    <div class="chip">RAM:&nbsp;<strong id="hram">—</strong></div>
+    <div class="chip">Profile:&nbsp;<strong id="hprof">Laptop</strong></div>
+  </div>
+  <nav class="hdr-nav">
+    <a href="/viewer/leaflet/index.html" class="nav-a" target="_blank">Leaflet GIS</a>
+    <a href="/docs" class="nav-a" target="_blank">API Docs</a>
+  </nav>
+</header>
+
+<div id="ws">
+
+  <!-- LEFT PANEL -->
+  <aside id="lp">
+
+    <!-- Datasets -->
+    <div class="sec">
+      <div class="sec-title">Flight Datasets <span id="dsc">loading…</span></div>
+      <div class="tabs">
+        <button class="tab on" data-t="p-orig">Original</button>
+        <button class="tab" data-t="p-up">Upload</button>
+      </div>
+
+      <!-- Original tab -->
+      <div class="pane on" id="p-orig">
+        <label class="lbl">Select Survey Dataset</label>
+        <select id="ds-sel" class="sel"><option>Loading…</option></select>
+        <div id="ds-info">
+          <div class="di"><span class="dk">Type</span><span class="dv" id="di-type">—</span></div>
+          <div class="di"><span class="dk">Frames</span><span class="dv" id="di-fr">—</span></div>
+          <div class="di"><span class="dk">GPS Points</span><span class="dv" id="di-gp">—</span></div>
+          <div class="di"><span class="dk">Size</span><span class="dv" id="di-sz">—</span></div>
+          <div class="di"><span class="dk">Pipeline Ready</span><span class="dv" id="di-rd">—</span></div>
+        </div>
+        <a href="/api/sample-zip" download="sample_drone_mission.zip" class="btn-dl">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download Sample Dataset ZIP
+        </a>
+      </div>
+
+      <!-- Upload tab -->
+      <div class="pane" id="p-up">
+        <label class="lbl">Dataset Name</label>
+        <input type="text" id="up-name" class="inp" placeholder="e.g. field_survey_oct2024" />
+        <label class="lbl" style="margin-top:8px">Upload ZIP or Images</label>
+        <div id="dz">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          <div>Drop ZIP or JPEG/PNG/TIFF here</div>
+          <div style="font-size:.66rem;margin-top:3px">or click to browse</div>
+        </div>
+        <div id="fn"></div>
+        <input type="file" id="fi" accept=".zip,.jpg,.jpeg,.png,.tif,.tiff" multiple style="display:none" />
+        <button class="abtn" id="up-btn" disabled>Upload &amp; Ingest</button>
+        <div id="us"></div>
+      </div>
+    </div>
+
+    <!-- Pipeline config -->
+    <div class="sec">
+      <div class="sec-title">Pipeline Configuration</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+        <div>
+          <label class="lbl">Edge Hardware Profile</label>
+          <select id="prof-sel" class="sel">
+            <option value="laptop">Laptop / Host</option>
+            <option value="pi-class">RPi 4/5 (4GB)</option>
+            <option value="pi-lite">RPi 4 (2GB)</option>
+            <option value="jetson-class">Jetson Orin</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Matcher Preset</label>
+          <select id="pres-sel" class="sel">
+            <option value="balanced">Balanced (AKAZE)</option>
+            <option value="speed">Speed (ORB)</option>
+            <option value="quality">Quality (SIFT)</option>
+          </select>
+        </div>
+      </div>
+      <button class="abtn" id="run-btn" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Run Orthomosaic Pipeline
+      </button>
+      <div class="ri" id="ri">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="10"/></svg>
+        Processing…&nbsp;<span class="el" id="el">0.0s</span>
+      </div>
+    </div>
+
+    <!-- Pipeline stages -->
+    <div class="sec">
+      <div class="sec-title">Processing Stages <span id="pbadge" style="color:var(--muted)">IDLE</span></div>
+      <div class="sl">
+        <div class="si" id="si-ingest"><div class="si-ic">1</div><div class="si-lb">GPS Ingest &amp; GSD</div><div class="si-t" id="st-ingest">—</div></div>
+        <div class="si" id="si-match"><div class="si-ic">2</div><div class="si-lb">k-d Tree Matching</div><div class="si-t" id="st-match">—</div></div>
+        <div class="si" id="si-pose"><div class="si-ic">3</div><div class="si-lb">Pose Graph (LM Solver)</div><div class="si-t" id="st-pose">—</div></div>
+        <div class="si" id="si-compose"><div class="si-ic">4</div><div class="si-lb">Tile Composition</div><div class="si-t" id="st-compose">—</div></div>
+        <div class="si" id="si-cog"><div class="si-ic">5</div><div class="si-lb">COG GeoTIFF</div><div class="si-t" id="st-cog">—</div></div>
+        <div class="si" id="si-tiles"><div class="si-ic">6</div><div class="si-lb">XYZ Tile Pyramid</div><div class="si-t" id="st-tiles">—</div></div>
+      </div>
+      <div class="pw"><div class="pf" id="pf" style="width:0%"></div></div>
+    </div>
+
+    <!-- Metrics -->
+    <div class="sec">
+      <div class="sec-title">Performance Metrics</div>
+      <div class="mg">
+        <div class="mc"><div class="mk">Total Time</div><div class="mv ac" id="m-lat">—</div></div>
+        <div class="mc"><div class="mk">TTFT</div><div class="mv" id="m-ttft">—</div></div>
+        <div class="mc"><div class="mk">Peak RAM</div><div class="mv" id="m-ram">—</div></div>
+        <div class="mc"><div class="mk">RMSE</div><div class="mv" id="m-rmse">—</div></div>
+        <div class="mc"><div class="mk">BW Savings</div><div class="mv ac" id="m-bw">—</div></div>
+        <div class="mc"><div class="mk">Frames Used</div><div class="mv" id="m-fr">—</div></div>
+      </div>
+      <div id="log"><div class="ll" style="color:var(--dim)">→ System ready. Select dataset and run pipeline.</div></div>
+    </div>
+
+  </aside>
+
+  <!-- RIGHT AREA -->
+  <div id="ra">
+
+    <!-- Map toolbar -->
+    <div id="mt">
+      <span class="tl">Orthomosaic Layer</span>
+      <div class="ts"></div>
+      <div class="op-wrap">
+        <span style="font-size:.7rem;color:var(--muted)">Opacity:</span>
+        <input type="range" id="op-sl" min="0" max="100" value="100" />
+        <span id="op-v">100%</span>
+      </div>
+      <div class="ts"></div>
+      <button class="tb" id="fit-btn">⊕ Fit Survey</button>
+      <button class="tb" id="gps-btn" style="border-color:var(--cyan);color:var(--cyan)">◉ Camera Pts</button>
+      <span id="coord">Hover over map</span>
+    </div>
+
+    <!-- Map -->
+    <div id="mw">
+      <div id="map"></div>
+      <div id="no-data">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>No orthomosaic generated yet</span>
+        <span style="font-size:.73rem">Run the pipeline to see results on the map</span>
+      </div>
+      <div id="hud">
+        <div class="ht">Orthomosaic Info</div>
+        <div class="hr"><span class="hk">CRS</span><span class="hv" id="h-crs">—</span></div>
+        <div class="hr"><span class="hk">GSD</span><span class="hv" id="h-gsd">—</span></div>
+        <div class="hr"><span class="hk">Size</span><span class="hv" id="h-dim">—</span></div>
+        <div class="hr"><span class="hk">Tiles</span><span class="hv" id="h-tiles">—</span></div>
+      </div>
+    </div>
+
+    <!-- Bottom deliverables -->
+    <div id="br">
+      <a href="/outputs/survey_run/orthomosaic_cog.tif" download class="ac">
+        <div class="ai"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+        <div><div class="al">COG GeoTIFF</div><div class="as">Cloud-Optimized .tif</div></div>
+      </a>
+      <a href="/outputs/survey_run/orthomosaic.tif" download class="ac">
+        <div class="ai"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+        <div><div class="al">GeoTIFF</div><div class="as">Standard orthomosaic</div></div>
+      </a>
+      <a href="/outputs/survey_run/manifest.json" target="_blank" class="ac">
+        <div class="ai"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <div><div class="al">Manifest JSON</div><div class="as">Bounds, CRS, metadata</div></div>
+      </a>
+      <a href="/outputs/survey_run/report.md" target="_blank" class="ac">
+        <div class="ai"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+        <div><div class="al">Run Report</div><div class="as">Telemetry benchmarks</div></div>
+      </a>
+      <a href="/outputs/survey_run/resources.png" target="_blank" class="ac">
+        <div class="ai"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <div><div class="al">Resource Plot</div><div class="as">CPU &amp; RAM trace</div></div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+// ═══════════════════════════════════════════════════════
+// EdgeOrtho Dashboard Application Logic
+// ═══════════════════════════════════════════════════════
+let map, orthoLyr, bndRect, gpsMkrs=[], allDS=[], selDS=null;
+let pollTmr=null, elTmr=null, runStart=0, showGps=true;
+let surBounds=null, upFiles=null;
+
+// ── Helpers ──────────────────────────────────────────
+function log(msg,cls=''){
+  const p=document.getElementById('log');
+  const d=document.createElement('div');
+  d.className='ll'+(cls?' '+cls:'');
+  d.textContent='→ '+msg;
+  p.appendChild(d);
+  p.scrollTop=p.scrollHeight;
+  while(p.children.length>80)p.removeChild(p.firstChild);
+}
+
+// ── MAP ──────────────────────────────────────────────
+function initMap(){
+  const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:22,attribution:'Imagery © Esri'});
+  const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:22,attribution:'© OpenStreetMap'});
+  map=L.map('map',{center:[20,0],zoom:3,maxZoom:22,layers:[sat]});
+  L.control.layers({'Satellite':sat,'Street Map':osm},null,{position:'topright'}).addTo(map);
+  L.control.scale({imperial:false,position:'bottomright'}).addTo(map);
+  map.on('mousemove',e=>{
+    document.getElementById('coord').textContent=e.latlng.lat.toFixed(6)+'°, '+e.latlng.lng.toFixed(6)+'°';
+  });
+  loadManifest('/outputs/survey_run/manifest.json',false);
+}
+
+function loadManifest(url,showOvl=true){
+  fetch(url)
+    .then(r=>{if(!r.ok)throw 0;return r.json();})
+    .then(m=>{
+      applyManifest(m);
+      document.getElementById('no-data').classList.add('h');
+    })
+    .catch(()=>{if(showOvl)document.getElementById('no-data').classList.remove('h');});
+}
+
+function applyManifest(m){
+  const b=m.bounds_wgs84;
+  if(!b||b.length!==4)return;
+  const sw=L.latLng(b[1],b[0]),ne=L.latLng(b[3],b[2]);
+  surBounds=L.latLngBounds(sw,ne);
+  if(bndRect)map.removeLayer(bndRect);
+  bndRect=L.rectangle(surBounds,{color:'#2563eb',weight:2,fillColor:'#2563eb',fillOpacity:.05,dashArray:'5,5'}).addTo(map);
+  if(orthoLyr)map.removeLayer(orthoLyr);
+  const op=parseInt(document.getElementById('op-sl').value,10)/100;
+  orthoLyr=L.tileLayer('/outputs/survey_run/tiles/{z}/{x}/{y}.png',{
+    maxNativeZoom:20,maxZoom:22,opacity:op
+  }).addTo(map);
+  map.fitBounds(surBounds,{padding:[30,30]});
+  document.getElementById('h-crs').textContent=m.epsg?'EPSG:'+m.epsg:'—';
+  document.getElementById('h-gsd').textContent=m.gsd_m?(m.gsd_m*100).toFixed(2)+' cm/px':'—';
+  document.getElementById('h-dim').textContent=(m.width&&m.height)?m.width+'×'+m.height+' px':'—';
+  document.getElementById('h-tiles').textContent='Z18–19 / XYZ';
+}
+
+// ── DATASETS ─────────────────────────────────────────
+async function loadDS(){
+  try{
+    const r=await fetch('/api/datasets');
+    allDS=await r.json();
+    buildDSSel(allDS);
+  }catch(e){log('Dataset load error: '+e.message,'er');}
+}
+
+function buildDSSel(ds){
+  const sel=document.getElementById('ds-sel');
+  sel.innerHTML='';
+  const cur=ds.filter(d=>d.type==='curated');
+  const upl=ds.filter(d=>d.type==='uploaded');
+  if(cur.length){
+    const og=document.createElement('optgroup');og.label='Original Datasets';
+    cur.forEach(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=d.name+' ('+d.frame_count+' frames)';og.appendChild(o);});
+    sel.appendChild(og);
+  }
+  if(upl.length){
+    const ug=document.createElement('optgroup');ug.label='Uploaded Datasets';
+    upl.forEach(d=>{const o=document.createElement('option');o.value=d.id;o.textContent=d.name+' ('+d.frame_count+' frames)';ug.appendChild(o);});
+    sel.appendChild(ug);
+  }
+  if(!ds.length){const o=document.createElement('option');o.textContent='No datasets — upload one';sel.appendChild(o);}
+  document.getElementById('dsc').textContent=ds.length+' dataset'+(ds.length!==1?'s':'');
+  if(ds.length){sel.value=ds[0].id;onDSChange();}
+}
+
+function onDSChange(){
+  const id=document.getElementById('ds-sel').value;
+  selDS=allDS.find(d=>d.id===id)||null;
+  const inf=document.getElementById('ds-info');
+  if(!selDS){inf.classList.remove('on');document.getElementById('run-btn').disabled=true;return;}
+  document.getElementById('di-type').textContent=selDS.type;
+  document.getElementById('di-fr').textContent=selDS.frame_count;
+  document.getElementById('di-gp').textContent=selDS.gps_count;
+  document.getElementById('di-sz').textContent=selDS.size_mb+' MB';
+  const rd=document.getElementById('di-rd');
+  if(selDS.ready){rd.textContent='✓ Yes';rd.className='dv g';}else{rd.textContent='✗ No GPS';rd.className='dv r';}
+  inf.classList.add('on');
+  document.getElementById('run-btn').disabled=!selDS.ready;
+  showGPSPts(selDS);
+}
+
+function showGPSPts(ds){
+  gpsMkrs.forEach(m=>map.removeLayer(m));gpsMkrs=[];
+  const pts=ds.gps_preview||[];
+  pts.forEach((pt,i)=>{
+    const m=L.circleMarker([pt.lat,pt.lon],{radius:5,fillColor:'#06b6d4',color:'#0e7490',weight:1,fillOpacity:.85});
+    m.bindTooltip('#'+(i+1)+' '+( pt.filename||'')+'<br>Alt: '+(pt.alt!=null?pt.alt.toFixed(1):'—')+' m',{direction:'top'});
+    if(showGps)m.addTo(map);
+    gpsMkrs.push(m);
+  });
+  if(ds.bounds&&ds.bounds.length===4&&!surBounds){
+    const sw=L.latLng(ds.bounds[1],ds.bounds[0]),ne=L.latLng(ds.bounds[3],ds.bounds[2]);
+    map.fitBounds(L.latLngBounds(sw,ne),{padding:[40,40],maxZoom:18});
+  }
+}
+
+// ── PIPELINE ─────────────────────────────────────────
+const STAGES=['ingest','match','pose','compose','cog','tiles'];
+
+function resetStages(){
+  STAGES.forEach((s,i)=>{
+    const el=document.getElementById('si-'+s);
+    el.className='si';
+    el.querySelector('.si-ic').textContent=i+1;
+    document.getElementById('st-'+s).textContent='—';
+  });
+  document.getElementById('pf').style.width='0%';
+  const b=document.getElementById('pbadge');b.textContent='IDLE';b.style.color='var(--muted)';
+}
+
+function applyState(s){
+  const status=s.status,stage=s.current_stage,pct=s.progress_percent||0,stages=s.stages||{};
+  document.getElementById('pf').style.width=pct+'%';
+  const b=document.getElementById('pbadge');
+  if(status==='running'){b.textContent='RUNNING';b.style.color='var(--amber)';}
+  else if(status==='completed'){b.textContent='DONE';b.style.color='var(--green-l)';}
+  else if(status==='error'){b.textContent='ERROR';b.style.color='var(--red)';}
+  else{b.textContent='IDLE';b.style.color='var(--muted)';}
+  const curIdx=STAGES.indexOf(stage);
+  STAGES.forEach((sg,i)=>{
+    const el=document.getElementById('si-'+sg);
+    const ic=el.querySelector('.si-ic');
+    let cls='si';
+    if(status==='error'&&sg===stage)cls+=' err';
+    else if(i<curIdx||status==='completed')cls+=' done';
+    else if(i===curIdx&&status==='running')cls+=' act';
+    el.className=cls;
+    ic.textContent=cls.includes('done')?'✓':cls.includes('act')?'◌':cls.includes('err')?'✕':i+1;
+    if(stages[sg])document.getElementById('st-'+sg).textContent=stages[sg].toFixed(2)+'s';
+  });
+  const m=s.metrics||{};
+  if(Object.keys(m).length){
+    document.getElementById('m-lat').textContent=m.total_latency_seconds!=null?m.total_latency_seconds.toFixed(2)+'s':'—';
+    document.getElementById('m-ttft').textContent=m.ttft_seconds!=null?m.ttft_seconds.toFixed(2)+'s':'—';
+    document.getElementById('m-ram').textContent=m.peak_ram_mb!=null?m.peak_ram_mb.toFixed(1)+' MB':'—';
+    document.getElementById('m-rmse').textContent=m.reprojection_rmse_px!=null?m.reprojection_rmse_px.toFixed(2)+' px':'—';
+    document.getElementById('m-bw').textContent=m.bandwidth_savings_factor!=null?m.bandwidth_savings_factor.toFixed(1)+'x':'—';
+    document.getElementById('m-fr').textContent=(m.valid_frames!=null&&m.total_frames!=null)?m.valid_frames+'/'+m.total_frames:'—';
+  }
+  const logs=s.logs||[];
+  if(logs.length){
+    const last=logs[logs.length-1];
+    if(last)log('['+last.stage+'] '+last.message);
+  }
+}
+
+async function runPipeline(){
+  if(!selDS)return;
+  const prof=document.getElementById('prof-sel').value;
+  const pres=document.getElementById('pres-sel').value;
+  document.getElementById('hprof').textContent=prof;
+  resetStages();
+  document.getElementById('log').innerHTML='';
+  log('Starting: '+selDS.name+' ['+prof+'/'+pres+']');
+  const btn=document.getElementById('run-btn');
+  btn.disabled=true;btn.className='abtn running';
+  btn.innerHTML='<svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="10"/></svg> Running…';
+  document.getElementById('ri').classList.add('on');
+  runStart=Date.now();
+  if(elTmr)clearInterval(elTmr);
+  elTmr=setInterval(()=>{document.getElementById('el').textContent=((Date.now()-runStart)/1000).toFixed(1)+'s';},200);
+  try{
+    const res=await fetch('/api/pipeline/run',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        dataset_path:selDS.folder,
+        dataset_name:selDS.name,
+        profile_name:prof,
+        preset_name:pres
+      })
+    });
+    const data=await res.json();
+    if(res.status===409){log('Pipeline already running.','er');resetBtn();return;}
+    if(!res.ok){log('Error: '+(data.detail||JSON.stringify(data)),'er');resetBtn(true);return;}
+    log('Pipeline accepted — polling status...');
+    if(pollTmr)clearInterval(pollTmr);
+    pollTmr=setInterval(poll,1500);
+  }catch(e){log('Network error: '+e.message,'er');resetBtn(true);}
+}
+
+async function poll(){
+  try{
+    const r=await fetch('/api/pipeline/status');
+    if(!r.ok)return;
+    const s=await r.json();
+    applyState(s);
+    if(s.status==='completed'){
+      clearInterval(pollTmr);clearInterval(elTmr);pollTmr=null;
+      const btn=document.getElementById('run-btn');
+      btn.disabled=false;btn.className='abtn done';
+      btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 6L9 17l-5-5"/></svg> Done!';
+      document.getElementById('ri').classList.remove('on');
+      log('Pipeline complete! Loading orthomosaic…','hl');
+      setTimeout(()=>{
+        loadManifest('/outputs/survey_run/manifest.json',false);
+        setTimeout(()=>{btn.className='abtn';btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Run Orthomosaic Pipeline';},3000);
+      },800);
+    }else if(s.status==='error'){
+      clearInterval(pollTmr);clearInterval(elTmr);pollTmr=null;
+      resetBtn(true);document.getElementById('ri').classList.remove('on');
+      log('Pipeline error: '+(s.error||'unknown'),'er');
+    }
+  }catch(_){}
+}
+
+function resetBtn(err=false){
+  const btn=document.getElementById('run-btn');
+  btn.disabled=false;btn.className='abtn'+(err?' err':'');
+  btn.innerHTML=err
+    ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Retry Pipeline'
+    :'<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Run Orthomosaic Pipeline';
+  if(elTmr){clearInterval(elTmr);elTmr=null;}
+}
+
+// ── UPLOAD ───────────────────────────────────────────
+function setupUpload(){
+  const dz=document.getElementById('dz'),fi=document.getElementById('fi');
+  dz.addEventListener('click',()=>fi.click());
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');handleFiles(e.dataTransfer.files);});
+  fi.addEventListener('change',()=>handleFiles(fi.files));
+  document.getElementById('up-name').addEventListener('input',validateUpload);
+  document.getElementById('up-btn').addEventListener('click',doUpload);
+}
+
+function handleFiles(files){
+  upFiles=files;
+  if(!files||!files.length)return;
+  const names=Array.from(files).map(f=>f.name);
+  document.getElementById('fn').textContent=names.length===1?names[0]:names.length+' files ('+names.slice(0,2).join(', ')+(names.length>2?'…':'')+')';
+  const nm=document.getElementById('up-name');
+  if(!nm.value&&names[0].endsWith('.zip'))nm.value=names[0].replace(/\.zip$/i,'').replace(/[^a-zA-Z0-9_\-]/g,'_').toLowerCase();
+  validateUpload();
+}
+
+function validateUpload(){
+  const ok=upFiles&&upFiles.length&&document.getElementById('up-name').value.trim();
+  document.getElementById('up-btn').disabled=!ok;
+}
+
+async function doUpload(){
+  const name=document.getElementById('up-name').value.trim();
+  if(!name||!upFiles)return;
+  const us=document.getElementById('us'),btn=document.getElementById('up-btn');
+  btn.disabled=true;btn.textContent='Uploading…';
+  us.className='load';us.textContent='Uploading and ingesting imagery…';
+  const fd=new FormData();fd.append('name',name);
+  const isZip=upFiles.length===1&&upFiles[0].name.toLowerCase().endsWith('.zip');
+  if(isZip)fd.append('zip_file',upFiles[0]);
+  else Array.from(upFiles).forEach(f=>fd.append('files',f));
+  try{
+    const res=await fetch('/api/upload-dataset',{method:'POST',body:fd});
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.detail||JSON.stringify(data));
+    us.className='ok';us.innerHTML='✓ Ingested <strong>'+data.valid_gps_count+'</strong> geotagged frames';
+    log('Uploaded: '+data.dataset_id+' — '+data.valid_gps_count+' GPS frames');
+    await loadDS();
+    switchTab('p-orig');
+    document.getElementById('ds-sel').value=data.dataset_id;
+    onDSChange();
+  }catch(e){us.className='err';us.textContent='✕ '+e.message;log('Upload error: '+e.message,'er');}
+  btn.disabled=false;btn.textContent='Upload & Ingest';
+}
+
+// ── TABS ─────────────────────────────────────────────
+function switchTab(id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  document.querySelector('[data-t="'+id+'"]').classList.add('on');
+}
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>switchTab(t.dataset.t)));
+
+// ── CONTROLS ─────────────────────────────────────────
+document.getElementById('op-sl').addEventListener('input',e=>{
+  const v=parseInt(e.target.value,10);
+  document.getElementById('op-v').textContent=v+'%';
+  if(orthoLyr)orthoLyr.setOpacity(v/100);
+});
+document.getElementById('fit-btn').addEventListener('click',()=>{
+  if(surBounds)map.fitBounds(surBounds,{padding:[30,30],maxZoom:19});
+});
+document.getElementById('gps-btn').addEventListener('click',()=>{
+  showGps=!showGps;
+  gpsMkrs.forEach(m=>showGps?m.addTo(map):map.removeLayer(m));
+  const b=document.getElementById('gps-btn');
+  b.style.borderColor=showGps?'var(--cyan)':'';
+  b.style.color=showGps?'var(--cyan)':'';
+});
+document.getElementById('run-btn').addEventListener('click',runPipeline);
+document.getElementById('ds-sel').addEventListener('change',onDSChange);
+
+// ── HEALTH ───────────────────────────────────────────
+async function health(){
+  try{
+    const r=await fetch('/api/health');
+    if(!r.ok)return;
+    const d=await r.json();
+    if(d.process_rss_mb)document.getElementById('hram').textContent=d.process_rss_mb+' MB';
+    document.getElementById('hapi').textContent='Online';
+  }catch(_){document.getElementById('hapi').textContent='Offline';}
+}
+
+// ── INIT ─────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',async()=>{
+  initMap();
+  setupUpload();
+  await loadDS();
+  health();
+  setInterval(health,8000);
+  // Resume polling if pipeline was running before page load
+  try{
+    const r=await fetch('/api/pipeline/status');
+    const s=await r.json();
+    if(s.status==='running'){
+      applyState(s);
+      log('Resuming pipeline monitor…');
+      runStart=Date.now()-(s.elapsed_seconds||0)*1000;
+      const btn=document.getElementById('run-btn');
+      btn.disabled=true;btn.className='abtn running';
+      btn.innerHTML='<svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="10"/></svg> Running…';
+      document.getElementById('ri').classList.add('on');
+      if(elTmr)clearInterval(elTmr);
+      elTmr=setInterval(()=>{document.getElementById('el').textContent=((Date.now()-runStart)/1000).toFixed(1)+'s';},200);
+      if(pollTmr)clearInterval(pollTmr);
+      pollTmr=setInterval(poll,1500);
+    }else if(s.status==='completed'){applyState(s);}
+  }catch(_){}
+});
+</script>
+</body>
+</html>

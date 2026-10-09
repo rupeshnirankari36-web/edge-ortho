@@ -17,8 +17,8 @@ requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.24.0",
     "scipy>=1.10.0",
-    "opencv-contrib-python-headless>=4.8.0; platform_system!='Windows'",
-    "opencv-contrib-python>=4.8.0; platform_system=='Windows'",
+    "opencv-contrib-python-headless>=4.8.0,<5.0.0; platform_system!='Windows'",
+    "opencv-contrib-python>=4.8.0,<5.0.0; platform_system=='Windows'",
     "pyproj>=3.5.0",
     "Pillow>=9.5.0",
     "piexif>=1.1.3",

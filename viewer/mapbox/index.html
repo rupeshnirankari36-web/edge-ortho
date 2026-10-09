@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EdgeOrtho - Mapbox GL JS Viewer</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: rgba(30, 41, 59, 0.9);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --accent: #38bdf8;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      height: 100%; width: 100%;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+    }
+    #map { height: 100%; width: 100%; }
+    .hud-panel {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 1000;
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px 20px;
+      max-width: 360px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .hud-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .token-input-group {
+      margin-top: 12px;
+    }
+    .token-input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      color: white;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      margin-top: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .btn {
+      margin-top: 8px;
+      width: 100%;
+      background: var(--accent);
+      color: #0f172a;
+      border: none;
+      font-weight: 600;
+      padding: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .info-note {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .back-btn {
+      display: inline-block;
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: var(--accent);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="hud-panel">
+    <div class="hud-title">Mapbox GL JS Viewer</div>
+    <div class="info-note">
+      As per privacy and security standards, no Mapbox access token is hardcoded in the codebase.
+    </div>
+    <div class="token-input-group">
+      <label style="font-size: 0.8rem; color: var(--text-muted)">Mapbox Public Access Token:</label>
+      <input type="text" id="token-input" class="token-input" placeholder="pk.eyJ1..." />
+      <button class="btn" id="load-btn">Load Mapbox Viewer</button>
+    </div>
+    <div id="status-msg" style="margin-top: 10px; font-size: 0.78rem;"></div>
+    <div>
+      <a href="/viewer/leaflet/index.html" class="back-btn">&larr; Switch to Leaflet (No Token Needed)</a>
+    </div>
+  </div>
+
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.1.2/mapbox-gl.js"></script>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const manifestUrl = urlParams.get('manifest') || '/outputs/survey_run/manifest.json';
+    const tokenInput = document.getElementById('token-input');
+    const loadBtn = document.getElementById('load-btn');
+    const statusMsg = document.getElementById('status-msg');
+
+    if (window.MAPBOX_TOKEN) {
+      tokenInput.value = window.MAPBOX_TOKEN;
+      initMap(window.MAPBOX_TOKEN);
+    }
+
+    loadBtn.addEventListener('click', () => {
+      const token = tokenInput.value.trim();
+      if (!token) {
+        statusMsg.style.color = '#f87171';
+        statusMsg.textContent = 'Please enter a valid Mapbox public token or use the Leaflet viewer.';
+        return;
+      }
+      initMap(token);
+    });
+
+    function initMap(token) {
+      mapboxgl.accessToken = token;
+      statusMsg.style.color = '#38bdf8';
+      statusMsg.textContent = 'Fetching run manifest...';
+
+      fetch(manifestUrl)
+        .then(r => r.json())
+        .then(manifest => {
+          const bounds = manifest.bounds_wgs84;
+          const center = bounds ? [(bounds[0] + bounds[2])/2, (bounds[1] + bounds[3])/2] : [-118.2437, 34.0522];
+
+          const map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/satellite-v9',
+            center: center,
+            zoom: 18
+          });
+
+          map.on('load', () => {
+            const manifestDir = manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1);
+            let tileUrl = manifest.tiles.startsWith('http') || manifest.tiles.startsWith('/') 
+              ? manifest.tiles 
+              : window.location.origin + '/' + (manifestDir + manifest.tiles).replace(/^\//, '');
+
+            map.addSource('ortho-tiles', {
+              type: 'raster',
+              tiles: [tileUrl],
+              tileSize: 256
+            });
+
+            map.addLayer({
+              id: 'ortho-layer',
+              type: 'raster',
+              source: 'ortho-tiles',
+              paint: { 'raster-opacity': 1.0 }
+            });
+
+            if (bounds) {
+              map.fitBounds([[bounds[0], bounds[1]], [bounds[2], bounds[3]]], { padding: 50 });
+            }
+            statusMsg.style.color = '#4ade80';
+            statusMsg.textContent = 'Rendered orthomosaic tiles successfully.';
+          });
+        })
+        .catch(err => {
+          statusMsg.style.color = '#f87171';
+          statusMsg.textContent = 'Error: ' + err.message;
+        });
+    }
+  </script>
+</body>
+</html>
