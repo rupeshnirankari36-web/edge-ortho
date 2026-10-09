@@ -1,0 +1,16 @@
+name: "fast"
+description: "High-speed rapid-mapping preset"
+matcher: "orb"
+feature_limit: 1000
+matching_image_max_dim: 800
+k_neighbors: 4
+max_neighbor_distance_m: 60.0
+transform_model: "similarity"
+ransac_thresh_px: 5.0
+blend_mode: "feather"
+feather_radius_px: 15
+exposure_compensation: false
+output_resolution_factor: 1.0
+multiband_blending: false
+generate_tiles: true
+generate_cog: true

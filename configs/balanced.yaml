@@ -1,0 +1,16 @@
+name: "balanced"
+description: "Balanced edge preset for standard surveys"
+matcher: "akaze"
+feature_limit: 1500
+matching_image_max_dim: 1000
+k_neighbors: 6
+max_neighbor_distance_m: 80.0
+transform_model: "affine"
+ransac_thresh_px: 4.0
+blend_mode: "feather"
+feather_radius_px: 25
+exposure_compensation: true
+output_resolution_factor: 1.0
+multiband_blending: false
+generate_tiles: true
+generate_cog: true
