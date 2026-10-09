@@ -3,7 +3,6 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
-from rasterio.transform import from_origin
 
 from edge_ortho.geo_export import convert_to_cog
 from edge_ortho.phase2 import (

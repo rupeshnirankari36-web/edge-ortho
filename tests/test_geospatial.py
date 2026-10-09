@@ -1,6 +1,13 @@
 import pytest
 
-from edge_ortho.geospatial import Bounds, Canvas, GeoPoint, bounds_from_projected, utm_epsg, validate_points
+from edge_ortho.geospatial import (
+    Bounds,
+    Canvas,
+    GeoPoint,
+    bounds_from_projected,
+    utm_epsg,
+    validate_points,
+)
 
 
 def test_utm_epsg_northern_and_southern_hemispheres():
