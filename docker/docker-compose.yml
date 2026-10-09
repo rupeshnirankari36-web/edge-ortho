@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  edge-ortho-pi-class:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: edge-ortho-pi-class
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4096M
+    volumes:
+      - ../data:/app/data:ro
+      - ../outputs:/app/outputs:rw
+    command: ["run", "--input", "/app/data/raw/aukerman/images", "--out", "/app/outputs/aukerman_pi", "--profile", "pi-class", "--preset", "balanced"]
+
+  edge-ortho-pi-lite:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: edge-ortho-pi-lite
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2048M
+    volumes:
+      - ../data:/app/data:ro
+      - ../outputs:/app/outputs:rw
+    command: ["run", "--input", "/app/data/raw/brighton_beach/images", "--out", "/app/outputs/brighton_pi_lite", "--profile", "pi-lite", "--preset", "fast"]
