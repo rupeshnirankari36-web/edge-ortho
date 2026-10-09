@@ -48,7 +48,7 @@ def run(
     no_tiles: bool = typer.Option(False, "--no-tiles", help="Disable XYZ tile generation"),
 ):
     """Executes the edge-optimized 2D orthomosaic pipeline on an image folder."""
-    console.print("[bold cyan]▶ Starting edge-ortho pipeline[/bold cyan]")
+    console.print("[bold cyan]> Starting edge-ortho pipeline[/bold cyan]")
     console.print(f"  Input:   [yellow]{input}[/yellow]")
     console.print(f"  Output:  [yellow]{out}[/yellow]")
     console.print(f"  Profile: [green]{profile}[/green] | Preset: [green]{preset}[/green]")
@@ -90,7 +90,7 @@ def run(
     table.add_row("Executive Report", str(out / "report.md"))
 
     console.print(table)
-    console.print("[bold green]✔ Orthomosaic generation completed successfully![/bold green]")
+    console.print("[bold green][OK] Orthomosaic generation completed successfully![/bold green]")
 
 
 @app.command()
@@ -109,7 +109,7 @@ def watch(
 ):
     """Watches a directory for new drone frames and triggers the pipeline once transmission settles."""
     console.print(
-        f"[bold cyan]👀 Watching directory: {input}[/bold cyan] (Settle timeout: {settle_seconds}s)"
+        f"[bold cyan][WATCH] Monitoring directory: {input}[/bold cyan] (Settle timeout: {settle_seconds}s)"
     )
     last_count = 0
     stable_cycles = 0
@@ -123,7 +123,7 @@ def watch(
                 stable_cycles += 1
                 if stable_cycles >= int(settle_seconds):
                     console.print(
-                        f"\n[green]⚡ Detected stable set of {current_count} images. Launching pipeline...[/green]"
+                        f"\n[green][EVENT] Detected stable set of {current_count} images. Launching pipeline...[/green]"
                     )
                     config = build_pipeline_config(profile_name=profile, preset_name=preset)
                     run_pipeline(input_dir=input, output_dir=out, config=config)
@@ -160,7 +160,7 @@ def verify_dataset(
     if report.rejections:
         console.print("\n[bold red]Rejection Reasons:[/bold red]")
         for rej in report.rejections[:10]:
-            console.print(f"  • {rej['file']}: {rej['reason']}")
+            console.print(f"  * {rej['file']}: {rej['reason']}")
         if len(report.rejections) > 10:
             console.print(f"  ... and {len(report.rejections) - 10} more.")
 
