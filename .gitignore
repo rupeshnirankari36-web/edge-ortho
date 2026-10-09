@@ -54,3 +54,5 @@ Thumbs.db
 .ruff_cache/
 .coverage
 htmlcov/
+# Local API project state
+$ data/projects/
