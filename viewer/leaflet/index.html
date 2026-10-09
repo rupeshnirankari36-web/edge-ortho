@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edge-Ortho Leaflet Viewer</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- Telemetry and Layer Control HUD Overlay -->
+  <aside id="hud-panel" class="hud-card">
+    <header class="hud-header">
+      <div class="hud-badge">EDGE-ORTHO</div>
+      <h1 id="dataset-title">Orthomosaic Viewer</h1>
+      <p id="survey-date" class="hud-subtitle">Local Edge Processing</p>
+    </header>
+
+    <section class="hud-section">
+      <h2 class="hud-label">Layer Controls</h2>
+      <div class="control-group">
+        <label for="opacity-slider" class="control-label">
+          <span>Orthomosaic Opacity</span>
+          <span id="opacity-val">100%</span>
+        </label>
+        <input type="range" id="opacity-slider" min="0" max="100" value="100" class="slider" />
+      </div>
+      <div class="toggle-group">
+        <label class="toggle-label">
+          <input type="checkbox" id="toggle-bounds" checked />
+          <span>Show Survey Bounds</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="hud-section">
+      <h2 class="hud-label">Edge Telemetry Summary</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-name">Peak RAM</span>
+          <span id="stat-ram" class="stat-val">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-name">Total Latency</span>
+          <span id="stat-latency" class="stat-val">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-name">GSD</span>
+          <span id="stat-gsd" class="stat-val">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-name">Bandwidth Saved</span>
+          <span id="stat-bandwidth" class="stat-val">—</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="hud-footer">
+      <a id="btn-download-geotiff" href="#" class="btn-primary" download>Download GeoTIFF</a>
+    </footer>
+  </aside>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+name: "quality"
+description: "Maximum registration accuracy and quality preset"
+matcher: "sift"
+feature_limit: 3000
+matching_image_max_dim: 1400
+k_neighbors: 8
+max_neighbor_distance_m: 100.0
+transform_model: "homography"
+ransac_thresh_px: 3.0
+blend_mode: "multiband"
+feather_radius_px: 35
+exposure_compensation: true
+output_resolution_factor: 1.0
+multiband_blending: true
+generate_tiles: true
+generate_cog: true

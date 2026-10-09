@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edge-Ortho Mapbox GL Viewer</title>
+  <!-- MapLibre GL / Mapbox compatible open-source vector & raster web map -->
+  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+  <link rel="stylesheet" href="../leaflet/style.css" />
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- HUD Overlay -->
+  <aside id="hud-panel" class="hud-card">
+    <header class="hud-header">
+      <div class="hud-badge">MAPBOX GL / MAPLIBRE</div>
+      <h1 id="dataset-title">Drone Orthomosaic</h1>
+      <p id="survey-date" class="hud-subtitle">WebGL Accelerated 2D Rendering</p>
+    </header>
+
+    <section class="hud-section">
+      <h2 class="hud-label">Layer Controls</h2>
+      <div class="control-group">
+        <label for="opacity-slider" class="control-label">
+          <span>Orthomosaic Opacity</span>
+          <span id="opacity-val">100%</span>
+        </label>
+        <input type="range" id="opacity-slider" min="0" max="100" value="100" class="slider" />
+      </div>
+      <div class="toggle-group">
+        <label class="toggle-label">
+          <input type="checkbox" id="toggle-pitch" checked />
+          <span>Enable 3D Tilt / Pitch</span>
+        </label>
+      </div>
+    </section>
+
+    <section class="hud-section">
+      <h2 class="hud-label">Edge Metrics</h2>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-name">Peak RAM</span>
+          <span id="stat-ram" class="stat-val">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-name">Latency</span>
+          <span id="stat-latency" class="stat-val">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-name">GSD</span>
+          <span id="stat-gsd" class="stat-val">—</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-name">Bandwidth Saved</span>
+          <span id="stat-bandwidth" class="stat-val">—</span>
+        </div>
+      </div>
+    </section>
+  </aside>
+
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
