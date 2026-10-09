@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "edge-ortho"
+version = "0.1.0"
+description = "Edge-optimized 2D drone orthomosaic pipeline for constrained devices"
+readme = "README.md"
+authors = [
+    { name = "Abhyuday" },
+    { name = "Naman" },
+    { name = "Rupesh" }
+]
+license = "MIT"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "opencv-contrib-python-headless>=4.8.0; platform_system!='Windows'",
+    "opencv-contrib-python>=4.8.0; platform_system=='Windows'",
+    "pyproj>=3.5.0",
+    "Pillow>=9.5.0",
+    "piexif>=1.1.3",
+    "exifread>=3.0.0",
+    "psutil>=5.9.0",
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "pyyaml>=6.0",
+    "rasterio>=1.3.0",
+    "rio-cogeo>=5.0.0",
+    "matplotlib>=3.7.0",
+    "fastapi>=0.110.0",
+    "python-multipart>=0.0.9",
+    "uvicorn>=0.29.0"
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+dashboard = ["streamlit>=1.25.0"]
+
+[project.scripts]
+edge-ortho = "edge_ortho.cli:main"
+edge-ortho-api = "edge_ortho.api.main:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]

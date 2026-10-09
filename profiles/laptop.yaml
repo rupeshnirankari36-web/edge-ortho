@@ -1,0 +1,13 @@
+name: "laptop"
+description: "Host laptop workstation baseline"
+max_cpus: null
+max_ram_mb: null
+max_swap_mb: null
+matching_image_max_dim: 1200
+feature_limit: 3000
+tile_size: 2048
+max_cached_frames: 16
+matcher: "sift"
+transform_model: "affine"
+chunk_size: 16
+multiband_blending: false

@@ -1,0 +1,13 @@
+name: "pi-class"
+description: "Standard Raspberry Pi 4/5 (4GB) edge profile"
+max_cpus: 4
+max_ram_mb: 4096
+max_swap_mb: 0
+matching_image_max_dim: 1000
+feature_limit: 1500
+tile_size: 2048
+max_cached_frames: 4
+matcher: "akaze"
+transform_model: "affine"
+chunk_size: 8
+multiband_blending: false
