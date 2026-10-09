@@ -165,26 +165,27 @@ function Sidebar({
   running: number;
 }) {
   return (
-    <aside className="flex w-56 shrink-0 flex-col border-r border-stone-300 bg-stone-200/40">
-      <div className="flex items-center gap-2.5 px-4 py-3.5">
-        <span className="flex h-7 w-7 items-center justify-center rounded-[5px] bg-forest-800">
+    <aside className="app-sidebar flex w-60 shrink-0 flex-col border-r border-stone-900/40 bg-stone-900 text-white">
+      <div className="flex items-center gap-3 border-b border-white/10 px-4 py-4">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[5px] border border-forest-400/60 bg-forest-800">
           <svg viewBox="0 0 32 32" className="h-4 w-4" aria-hidden>
             <path
               d="M7 22V10l9 7 9-7v12"
-              stroke="#F5F3EC"
+              stroke="#FFFFFF"
               strokeWidth="2.4"
               fill="none"
               strokeLinejoin="round"
             />
           </svg>
         </span>
-        <div className="min-w-0">
-          <div className="truncate text-sm font-semibold tracking-tight text-stone-900">EdgeOrtho</div>
-          <div className="truncate text-2xs text-stone-500">local drone mapping</div>
+        <div className="brand-copy min-w-0">
+          <div className="truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-forest-300">GEOAI 01</div>
+          <div className="truncate text-sm font-semibold tracking-tight text-white">EDGE-ORTHO</div>
+          <div className="truncate text-2xs text-stone-400">edge-based drone mapping</div>
         </div>
       </div>
 
-      <nav className="flex-1 px-2 pb-2" aria-label="Primary">
+      <nav className="flex-1 px-2 py-3" aria-label="Primary">
         {NAV.map((item) => {
           const Icon = item.icon;
           const active = route.page === item.page;
@@ -197,16 +198,16 @@ function Sidebar({
               aria-current={active ? "page" : undefined}
               onClick={() => navigate(item.page)}
               className={cx(
-                "group mb-0.5 flex w-full items-center gap-2.5 rounded-[4px] px-2.5 py-[7px] text-left text-xs transition-colors",
+                "group mb-0.5 flex w-full items-center gap-2.5 rounded-[5px] border-l-2 px-2.5 py-2 text-left text-xs transition-colors",
                 active
-                  ? "bg-stone-50 font-semibold text-stone-900 shadow-panel"
-                  : "text-stone-600 hover:bg-stone-50/70 hover:text-stone-900",
+                  ? "border-forest-400 bg-forest-800/80 font-semibold text-white"
+                  : "border-transparent text-stone-400 hover:bg-white/[0.06] hover:text-white",
               )}
             >
-              <Icon size={14} className={active ? "text-forest-700" : "text-stone-500"} />
-              <span className="flex-1 truncate">{item.label}</span>
+              <Icon size={15} className={active ? "text-forest-300" : "text-stone-500"} />
+              <span className="nav-label flex-1 truncate">{item.label}</span>
               {badge ? (
-                <span className="rounded-full bg-stone-300 px-1.5 text-2xs tabular-nums text-stone-700">
+                  <span className="rounded-full bg-white/10 px-1.5 text-2xs tabular-nums text-stone-300">
                   {badge}
                 </span>
               ) : null}
@@ -215,12 +216,12 @@ function Sidebar({
         })}
       </nav>
 
-      <div className="border-t border-stone-300 px-3 py-3">
+      <div className="sidebar-meta border-t border-white/10 px-3 py-3">
         {activeRun ? (
           <button
             type="button"
             onClick={() => navigate("results", activeRun.run_id)}
-            className="mb-2 w-full rounded-[4px] border border-stone-300 bg-stone-50 px-2 py-1.5 text-left hover:bg-stone-100"
+            className="run-context mb-2 w-full rounded-[5px] border border-white/10 bg-white/[0.06] px-2 py-1.5 text-left hover:bg-white/[0.1]"
           >
             <div className="flex items-center justify-between gap-2">
               <span className="truncate text-2xs font-semibold uppercase tracking-[0.07em] text-stone-500">
@@ -228,13 +229,13 @@ function Sidebar({
               </span>
               <StatusChip status={activeRun.status} />
             </div>
-            <div className="mt-1 truncate text-2xs text-stone-600" title={activeRun.name}>
+            <div className="mt-1 truncate text-2xs text-stone-300" title={activeRun.name}>
               {activeRun.name}
             </div>
           </button>
         ) : null}
 
-        <div className="flex items-center gap-1.5 text-2xs text-stone-500">
+        <div className="flex items-center gap-1.5 text-2xs text-stone-400">
           <span
             className={cx(
               "h-1.5 w-1.5 rounded-full",
@@ -242,16 +243,16 @@ function Sidebar({
             )}
           />
           <span className="truncate">
-            {system ? `backend ${system.version}` : "backend offline"}
+            {system ? `local backend ${system.version}` : "backend offline"}
           </span>
         </div>
         {system ? (
-          <div className="mt-0.5 truncate text-2xs text-stone-400">
+          <div className="mt-0.5 truncate text-2xs text-stone-500">
             {system.cpu_logical} cores · {(system.ram_total_mb / 1024).toFixed(0)} GB RAM
           </div>
         ) : null}
-        <div className="mt-1.5 truncate text-2xs text-stone-400" title="Raw imagery stays on this machine">
-          raw imagery stays local
+        <div className="mt-1.5 truncate text-2xs text-stone-500" title="Raw imagery stays on this machine">
+          raw imagery stays local · no cloud upload
         </div>
       </div>
     </aside>
@@ -283,9 +284,10 @@ function TopBar({
 }) {
   const meta = TITLES[route.page] ?? TITLES.overview;
   return (
-    <header className="flex shrink-0 items-center justify-between gap-4 border-b border-stone-300 bg-stone-100/80 px-5 py-3 backdrop-blur-sm">
+    <header className="flex min-h-16 shrink-0 items-center justify-between gap-4 border-b border-stone-300 bg-white px-5 py-3">
       <div className="min-w-0">
-        <h1 className="truncate text-[15px] font-semibold tracking-tight text-stone-900">{meta.title}</h1>
+        <div className="mb-0.5 text-2xs font-medium uppercase tracking-[0.08em] text-stone-500">GEOAI 01 / {meta.title}</div>
+        <h1 className="truncate text-[17px] font-semibold tracking-tight text-stone-900">{meta.title}</h1>
         <p className="truncate text-xs text-stone-500">{meta.subtitle}</p>
       </div>
       <div className="flex shrink-0 items-center gap-3">
@@ -298,7 +300,7 @@ function TopBar({
         >
           <span className="hidden items-center gap-1.5 text-2xs text-stone-500 sm:flex">
             <Cpu size={12} />
-            {system ? `${system.cpu_logical} cores · ${(system.ram_total_mb / 1024).toFixed(0)} GB` : "—"}
+            {system ? `local · ${system.cpu_logical} cores · ${(system.ram_total_mb / 1024).toFixed(0)} GB` : "backend unavailable"}
           </span>
         </Tooltip>
         {activeRun ? <StatusChip status={activeRun.status} label={`run ${activeRun.status}`} /> : null}
