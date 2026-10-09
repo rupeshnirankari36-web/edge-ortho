@@ -1,0 +1,13 @@
+name: "pi-lite"
+description: "Ultra-constrained Raspberry Pi 4 (2GB) simulation"
+max_cpus: 2
+max_ram_mb: 2048
+max_swap_mb: 0
+matching_image_max_dim: 800
+feature_limit: 1000
+tile_size: 1024
+max_cached_frames: 2
+matcher: "orb"
+transform_model: "similarity"
+chunk_size: 4
+multiband_blending: false
