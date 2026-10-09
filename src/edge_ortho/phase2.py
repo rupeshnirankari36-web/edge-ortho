@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Iterator
 
@@ -19,7 +19,7 @@ from rasterio.transform import Affine, from_bounds
 from rasterio.warp import calculate_default_transform, reproject, transform_bounds
 from rasterio.windows import Window
 
-from .geo_export import build_manifest, convert_to_cog, write_geotiff
+from .geo_export import build_manifest
 
 
 @dataclass(frozen=True)
