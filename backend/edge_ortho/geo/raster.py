@@ -277,14 +277,12 @@ class PreviewAccumulator:
     def save(self, out_path: str | Path) -> dict:
         import cv2
 
-        out_path = Path(out_path)
         safe = np.maximum(self.alpha, 1e-6)[:, :, None]
         rgb = np.clip(self.acc / safe, 0, 255).astype(np.uint8)
-        # The GeoTIFF retains its alpha mask, but a browser-facing photo view
-        # should not present transparent no-data pixels as a black void.
-        rgb[self.alpha <= 1e-6] = 255
+        alpha = np.clip(self.alpha * 255.0, 0, 255).astype(np.uint8)
+        rgba = np.dstack([rgb, alpha])
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        ok, buf = cv2.imencode(".png", cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
+        ok, buf = cv2.imencode(".png", cv2.cvtColor(rgba, cv2.COLOR_RGBA2BGRA))
         if not ok:
             return {"produced": False, "messages": ["PNG encode failed"]}
         out_path.write_bytes(buf.tobytes())
@@ -516,7 +514,7 @@ def _lonlat_to_tile(lon: float, lat: float, z: int) -> tuple[float, float]:
 def choose_zoom_range(
     gsd_m: float,
     bounds_wgs84: list[float] | None,
-    max_zoom: int = 19,
+    max_zoom: int = 22,
 ) -> tuple[int, int]:
     """Pick min/max web zoom levels that match the mosaic's real resolution."""
     # Web Mercator ground resolution at the equator: 156543.03 / 2^z m/px, scaled
@@ -586,7 +584,8 @@ def generate_xyz_tiles(
                 n = 2**z
                 tx0, tx1 = max(0, tx0), min(n - 1, tx1)
                 ty0, ty1 = max(0, ty0), min(n - 1, ty1)
-                if (tx1 - tx0 + 1) * (ty1 - ty0 + 1) * max(1, count) > MAX_XYZ_TILES:
+                tiles_needed = (tx1 - tx0 + 1) * (ty1 - ty0 + 1)
+                if count + tiles_needed > MAX_XYZ_TILES and count > 0:
                     info["messages"].append(
                         f"stopped at zoom {z}: tile budget of {MAX_XYZ_TILES} reached"
                     )
@@ -659,8 +658,8 @@ def _render_tile(src, z: int, tx: int, ty: int) -> bytes | None:
                                       40075016.686 / (n * TILE_PX)),
             dst_crs=WEB_MERCATOR,
             dst_nodata=0,
-            resampling=Resampling.bilinear,
-            num_threads=1,
+            resampling=Resampling.cubic,
+            num_threads=2,
         )
     except Exception as exc:
         _TILE_ERRORS.append(str(exc))

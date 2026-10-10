@@ -168,35 +168,6 @@ def inspect_source(payload: dict | None = None) -> dict:
         payload = {}
     """Milestone 1 on its own: validate metadata without running the pipeline.
 
-    Works on a local folder path so the browser never uploads the imagery; the
-    backend reads it straight from disk. Returns the same metadata report the
-    pipeline stage would produce.
-    """
-    p = payload.get("path")
-    if not p or not isinstance(p, str):
-        raise HTTPException(status_code=400, detail="`path` is required and must be a string")
-    p = Path(p)
-    if not p.exists():
-        raise HTTPException(status_code=400, detail=f"path does not exist: {p}")
-    if p.is_file():
-        raise HTTPException(status_code=400, detail="expected a folder, not a single file")
-
-    import time as _time
-    start = _time.perf_counter()
-    found = discover_images(p)
-    if found.image_count == 0:
-        raise HTTPException(status_code=400, detail="no supported image files found at the source")
-    result = ingest(p)
-    elapsed = _time.perf_counter() - start
-
-    return {
-        "frames": [f.to_dict() for f in result.frames],
-        **result.to_dict(),
-        "elapsed_s": elapsed,
-        "suggested_name": (result.summary.get("image_dimensions", []) and p.name) or str(p.name),
-    }
-    """Milestone 1 on its own: validate metadata without running the pipeline.
-
     Returns the accepted/rejected report, the flight extent and warnings. Runs in
     a couple of seconds because it only reads image headers.
     """

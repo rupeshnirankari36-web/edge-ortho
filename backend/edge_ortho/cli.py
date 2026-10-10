@@ -97,6 +97,38 @@ def cmd_run(args: argparse.Namespace) -> int:
     print(f"source: {args.input}")
     report = run_pipeline(args.input, settings=settings, name=args.name, emit=emit)
 
+    from .storage import RunStore
+
+    store = RunStore()
+    metrics = report.get("metrics") or {}
+    output = report.get("output") or {}
+    summary = report.get("metadata_summary") or {}
+    store.upsert_run(
+        {
+            "run_id": report["run_id"],
+            "name": report.get("name") or report["run_id"],
+            "source": str(args.input),
+            "created_at": report.get("created_at"),
+            "finished_at": report.get("finished_at"),
+            "status": report.get("status", "succeeded"),
+            "profile": settings.profile,
+            "preset": settings.preset,
+            "frames_total": metrics.get("frames_total"),
+            "frames_ok": metrics.get("frames_accepted"),
+            "output_bytes": metrics.get("output_bytes"),
+            "wall_clock_s": metrics.get("wall_clock_s"),
+            "peak_rss_mb": metrics.get("peak_rss_mb"),
+            "settings": settings.to_dict(),
+            "summary": summary,
+            "stages": report.get("stages"),
+            "metrics": metrics,
+            "output": output,
+            "report": report,
+            "artifacts": report.get("artifacts"),
+            "error": report.get("error"),
+        }
+    )
+
     if args.out:
         target = Path(args.out)
         target.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Download, Image as ImageIcon, Maximize2, Map as MapIcon } from "lucide-react";
-import { cogUrl, geotiffUrl, previewUrl, type RunListItem } from "../lib/api";
+import { ArrowLeft, Download, Image as ImageIcon, Map as MapIcon } from "lucide-react";
+import { cogUrl, geotiffUrl, type RunListItem } from "../lib/api";
 import { fmtBytes, fmtCm, fmtNumber } from "../lib/format";
+import { PhotoMap } from "../components/PhotoMap";
 import { Button, EmptyState, Panel, PanelHeader, Stat } from "../components/ui";
 import { PRECOMPUTED_DEMO_RUN_ID, type PageProps } from "./shared";
 
@@ -37,7 +38,6 @@ export default function ImageViewer({ runId, activeRunId, onNavigate }: PageProp
   }
 
   const output = (run?.output ?? { produced: true }) as { width?: number; height?: number; pixel_resolution_m?: number; geotiff_bytes?: number; cog_bytes?: number; produced?: boolean };
-  const hasOutput = true;
 
   return (
     <div className="flex min-h-[calc(100vh-64px)] flex-col gap-4 bg-stone-100 p-5">
@@ -54,21 +54,8 @@ export default function ImageViewer({ runId, activeRunId, onNavigate }: PageProp
           }
         />
         <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_300px]">
-          <div className="flex min-h-[60vh] items-center justify-center bg-white p-3 sm:p-6">
-            {hasOutput ? (
-              <a href={previewUrl(effectiveId)} target="_blank" rel="noreferrer" className="group relative block max-h-[76vh] max-w-full">
-                <img
-                  src={previewUrl(effectiveId)}
-                  alt="Final photographic orthomosaic"
-                  className="block max-h-[76vh] max-w-full object-contain shadow-panel transition-transform group-hover:scale-[1.005]"
-                />
-                <span className="absolute bottom-3 right-3 flex items-center gap-1 rounded-[3px] bg-stone-900/75 px-2 py-1 text-2xs text-white opacity-0 transition-opacity group-hover:opacity-100">
-                  <Maximize2 size={11} /> Open image
-                </span>
-              </a>
-            ) : (
-              <p className="text-sm text-stone-500">No photographic output was produced for this run.</p>
-            )}
+          <div className="h-[78vh] min-h-[420px] bg-white">
+            <PhotoMap className="h-full w-full" />
           </div>
           <aside className="border-t border-stone-200 bg-stone-50 p-4 xl:border-l xl:border-t-0">
             <h2 className="text-sm font-semibold text-stone-900">Brighton Beach · 18 frames</h2>

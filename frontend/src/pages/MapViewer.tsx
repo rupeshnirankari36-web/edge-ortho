@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, Compass, Info, Layers, MapPin, Ruler, Satellite, TriangleAlert } from "lucide-react";
+import { ArrowRight, Compass, Image as ImageIcon, Info, Layers, MapPin, Ruler, Satellite, TriangleAlert } from "lucide-react";
 import { api, previewUrl, tileUrl, type RunListItem } from "../lib/api";
 import {
   DASH,
@@ -16,7 +16,13 @@ import { MapView, type MapLayers } from "../components/MapView";
 import { PRECOMPUTED_DEMO_BOUNDS_WGS84, PRECOMPUTED_DEMO_RUN_ID, type PageProps } from "./shared";
 
 export default function MapViewer({ runs, runId, activeRunId, onNavigate, selectRun, refreshRuns }: PageProps & { runId: string | null }) {
-  const effectiveId = runId ?? activeRunId ?? runs[0]?.run_id ?? PRECOMPUTED_DEMO_RUN_ID;
+  const effectiveId =
+    runId ??
+    activeRunId ??
+    runs.find((r) => r.name.includes("Brighton Beach") && r.status === "succeeded")?.run_id ??
+    runs.find((r) => r.status === "succeeded")?.run_id ??
+    runs[0]?.run_id ??
+    PRECOMPUTED_DEMO_RUN_ID;
   const [geojson, setGeojson] = useState<(GeoJSON.FeatureCollection & { properties: Record<string, unknown> }) | null>(null);
   const [run, setRun] = useState<RunListItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -170,6 +176,9 @@ export default function MapViewer({ runs, runId, activeRunId, onNavigate, select
                     label: `${r.name} — ${r.status}`,
                   }))}
                 />
+                <Button icon={<ImageIcon size={13} />} onClick={() => onNavigate("image", effectiveId)}>
+                  Photo view
+                </Button>
                 <Button icon={<ArrowRight size={13} />} onClick={() => onNavigate("results", effectiveId)}>
                   Results
                 </Button>

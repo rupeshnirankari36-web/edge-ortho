@@ -37,10 +37,13 @@ export default function Overview({ runs, system, systemError, refreshRuns, onNav
     [runs],
   );
   const precomputedDemo = useMemo(
-    () => runs.find((r) => r.name.startsWith("Precomputed demo · Brighton Beach · 18 frames") && r.status === "succeeded") ?? null,
+    () =>
+      runs.find((r) => r.name.includes("Brighton Beach") && r.status === "succeeded") ??
+      runs.find((r) => (r.output as { produced?: boolean })?.produced && r.status === "succeeded") ??
+      null,
     [runs],
   );
-  const precomputedId = precomputedDemo?.run_id ?? PRECOMPUTED_DEMO_RUN_ID;
+  const precomputedId = precomputedDemo?.run_id ?? runs[0]?.run_id ?? PRECOMPUTED_DEMO_RUN_ID;
 
   const aggregate = useMemo(() => {
     const withMetrics = finished.filter((r) => isMeasured(r.wall_clock_s));
@@ -152,18 +155,26 @@ export default function Overview({ runs, system, systemError, refreshRuns, onNav
               </p>
             </div>
           </div>
-          <Button
-            variant="primary"
-            icon={<MapIcon size={13} />}
-            onClick={() => onNavigate("image", precomputedId)}
-          >
-            Open mapped view
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="primary"
+              icon={<MapIcon size={13} />}
+              onClick={() => onNavigate("map", precomputedId)}
+            >
+              Open mapped view
+            </Button>
+            <Button
+              icon={<ImageIcon size={13} />}
+              onClick={() => onNavigate("image", precomputedId)}
+            >
+              Photo view
+            </Button>
+          </div>
         </div>
         <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_280px]">
           <button
             type="button"
-            onClick={() => onNavigate("image", precomputedId)}
+            onClick={() => onNavigate("map", precomputedId)}
             className="grid-paper group min-h-[180px] border-b border-stone-200 p-3 text-left md:border-b-0 md:border-r"
             aria-label="Open the precomputed Brighton Beach 18-frame map"
           >

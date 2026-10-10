@@ -193,12 +193,14 @@ export function MapView({
       const max = layers.tileMaxZoom ?? 22;
       const tileLayer = L.tileLayer(layers.tileUrlTemplate, {
         minZoom: Math.max(0, min - 1),
-        maxZoom: max + 2,
+        maxZoom: Math.max(24, max + 3),
         minNativeZoom: min,
         maxNativeZoom: max,
         tileSize: 256,
         opacity: 1,
-        keepBuffer: 1,
+        keepBuffer: 2,
+        updateWhenIdle: false,
+        updateWhenZooming: true,
         pane: "outputPane",
         attribution: "EdgeOrtho mosaic (generated locally)",
       });
